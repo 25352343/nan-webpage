@@ -43,13 +43,13 @@ SQL scripts used to create the store-week table are in [`/sql`](sql/).
 The scatter shows a clear upward trend: higher spend generally aligns with higher ranking score.  
 At the same time, the variance is big — stores with similar spend can land in very different ranking ranges, so spend is not the only driver.
 
-![Scatter](assets/01_scatter_log_spend_vs_ranking.png)
+![Scatter](01_scatter_log_spend_vs_ranking.png)
 
 ### 2) Ranking improves across spend deciles
 When I bucket stores by weekly spend deciles (D1 → D10), average ranking increases steadily.
 In this sample, the mean ranking goes from roughly **0.63 (D1)** to **0.79 (D10)**.
 
-![Spend buckets](assets/02_spend_buckets_mean_ranking.png)
+![Spend buckets](02_spend_buckets_mean_ranking.png)
 
 ### 3) Baseline matters: high baseline stays high, mid baseline looks most “responsive”
 I split store-weeks into **low / mid / high baseline** cohorts using **previous-week ranking**.  
@@ -58,7 +58,7 @@ All three cohorts trend upward with spend, but the picture is different:
 - **Mid baseline** stores show a strong lift as spend increases (especially in higher spend buckets).
 - **Low baseline** stores do improve with spend, but they remain well below the other cohorts — suggesting fundamentals may be limiting.
 
-![Baseline segmentation](assets/03_baseline_cohort_spend_vs_ranking.png)
+![Baseline segmentation](03_baseline_cohort_spend_vs_ranking.png)
 
 ---
 
