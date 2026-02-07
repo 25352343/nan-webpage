@@ -1,4 +1,3 @@
-
 # Data Modeling & Processing Workflow
 
 ## 1. Project Background
@@ -18,32 +17,26 @@ The model serves both **central strategy teams** and **regional execution teams*
 
 ### Table 1: MEITUAN Delivery Platform Business Circle Weekly Report (Fact Table)
 
-**Purpose**  
 Represents weekly relative performance of each store on the delivery platform.
 
 **Core Fields**
-
-- Store ID (internal, primary key)
+- Store ID (primary key)
 - Platform Store ID
-- Province
-- City
-- Business Circle Ranking (numeric, 0–1)
+- Province, City
+- Business Circle Ranking (0–1)
 - Date (yyyymmdd)
 
-This table acts as the **only fact table**, containing all weekly performance metrics.
+This table acts as the **only fact table**.
 
 ---
 
 ### Table 2: Store Mapping & Responsibility Table (Dimension)
 
-**Purpose**  
 Provides organizational ownership, operational roles, and store attributes.
 
 **Core Fields**
-
-- Store ID (primary key)
-- Province
-- City
+- Store ID
+- Province, City
 - Store Type (direct-operated / franchised)
 - Operations Manager
 - Regional Manager
@@ -51,120 +44,104 @@ Provides organizational ownership, operational roles, and store attributes.
 - Store Manager
 - Business Division
 
-**Note**
-
-- Operations Manager and Delivery Operator are **parallel roles**
-- No direct reporting relationship exists between them
-- The model supports **multi-role responsibility attribution**
+Operations Manager and Delivery Operator are **parallel roles** with no direct reporting relationship.
 
 ---
 
 ### Table 3: Store Lifecycle Information (Dimension)
 
-**Purpose**  
 Defines store lifecycle stage to adjust risk tolerance.
 
 **Core Fields**
-
-- Store ID (primary key)
-- Province
-- City
+- Store ID
+- Province, City
 - Opening Date
 - Closing Date
 - Store Lifecycle Status (new / mature / closed)
-
-**Lifecycle Definitions**
-
-- New Store: Operating ≤ 1 year (higher tolerance for C-grade performance)
-- Mature Store: Operating > 1 year (persistent C-grade indicates structural risk)
-- Closed Store: Excluded from final analysis
 
 ---
 
 ## 3. Table Join Logic
 
-All three tables are joined using **Store ID** as the primary key, forming a unified
+All tables are joined using **Store ID** as the primary key, forming a unified
 **weekly analytical wide table**.
 
 ---
 
-## 4. Derived Metrics Design
+## 4. Metrics & Derived Fields Design
 
-### 4.1 Weekly Time Standardization
-
-- Convert yyyymmdd into:
-  - Year
-  - Week of Year
+### Time Standardization
+- Convert yyyymmdd into Year and Week of Year
 - Unified display format: `YYYY-WW`
 
-Purpose: support trend analysis and week-over-week comparison.
+### Store Performance Classification (ABC)
+Stores are classified based on business circle ranking:
+- A: ≥ 0.90
+- B: 0.65 – 0.90
+- C: < 0.65
 
----
+This relative metric avoids scale and location bias and enables fair comparison.
 
-### 4.2 Store Performance Rating (ABC Classification)
+### C-grade Store Ratio (Core Dashboard Metric)
 
-Based on business circle ranking:
+**Definition**
+Distinct count of C-grade stores /
+Distinct count of all active stores
 
-- Grade A: ≥ 0.90
-- Grade B: 0.65 – 0.90
-- Grade C: < 0.65
+**Purpose**
+Quantifies the proportion of structurally underperforming stores and enables
+comparison across divisions, Delivery Operator and time.
 
-**Rationale**
+### Week-over-Week Change & Improvement Ranking
 
-- Avoids GMV and order count biases
-- Uses platform-calculated relative ranking
-- Eliminates location and scale differences
-- Enables fair cross-store comparison
+- WoW Change measures week-over-week movement of C-grade Store Ratio
+- Improvement Ranking orders delivery operators by WoW change within the same week
 
-Thresholds are based on historical performance distribution and operational experience.
+These metrics help distinguish short-term fluctuation from structural issues
+and support operational prioritization.
 
----
+### Drill-down Design
 
-### 4.3 Week-over-Week Change (WoW)
-
-- Calculates WoW change of business circle ranking
-- Distinguishes short-term fluctuations from structural deterioration
+Drill-down views reuse the same metric definitions while changing grouping
+dimensions (division, delivery operator, store), ensuring metric consistency
+across overview and detail-level dashboards.
 
 ---
 
 ## 5. Data Filtering Rules
 
-Before final output:
-
 - Exclude closed stores
 - Exclude stores without assigned delivery operator
 
-Ensures all records are **actionable and accountable**.
+Ensures all records are actionable.
 
 ---
 
 ## 6. Final Output Schema
 
-### Time Dimension
-- Year
-- Week
+**Time**
+- Year, Week
 
-### Store Dimension
-- Store ID
-- Platform Store ID
-- Province
-- City
+**Store**
+- Store ID, Platform Store ID
+- Province, City
 
-### Performance Metrics
+**Performance**
 - Business Circle Ranking
 - ABC Store Grade
+- C-grade Store Ratio
 - WoW Change
 
-### Responsibility Dimensions
+**Responsibility**
 - Operations Manager
 - Regional Manager
 - Delivery Operator
 - Store Manager
 - Business Division
 
-### Store Attributes
-- Store Type (direct / franchise)
-- Lifecycle Status (new / mature)
+**Attributes**
+- Store Type
+- Lifecycle Status
 - Opening Date
 - Closing Date
 
@@ -172,7 +149,7 @@ Ensures all records are **actionable and accountable**.
 
 ## 7. Modeling Principles
 
-- Prefer **relative platform metrics** over absolute financial values
-- Support **matrix organizational structures**
-- Incorporate lifecycle context into performance evaluation
-- Ensure full data lineage and delivery readiness
+- Prefer relative platform metrics over absolute financial values
+- Design metrics driven by dashboard and decision needs
+- Support matrix organizational structures
+- Ensure metric consistency and delivery readiness
