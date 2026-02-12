@@ -1,55 +1,48 @@
-
 /*
 Business Question:
-    Which cities showed the fastest GMV YoY growth
-    in 22Q1 compared with 21Q1?
+    Which cities showed the fastest GMV YoY growth in 22Q1 vs 21Q1?
 
 Business Value:
-    - Remove seasonality impact (Q1 vs Q1)
-    - Support city expansion prioritization
-
+    - Compare Q1 vs Q1 to reduce seasonality effects
+    - Support city expansion prioritization (growth + scale)
 */
 
-WITH city_q1_gmv AS (
+WITH city_q1 AS (
     SELECT
         CASE 
             WHEN year = 2022 AND month < 4 THEN '22Q1'
             WHEN year = 2021 AND month < 4 THEN '21Q1'
-            ELSE 'other'
         END AS quarter,
         city,
         SUM(gmv) AS city_gmv,
         COUNT(DISTINCT mendianid) AS store_count
     FROM data1.xxdd_all_huizong_month_dws
     WHERE ds > 1
-    GROUP BY
-        CASE 
-            WHEN year = 2022 AND month < 4 THEN '22Q1'
-            WHEN year = 2021 AND month < 4 THEN '21Q1'
-            ELSE 'other'
-        END,
-        city
+      AND ((year = 2022 AND month < 4) OR (year = 2021 AND month < 4))
+    GROUP BY 1, 2
 ),
 
-gmv_22q1 AS (
-    SELECT * FROM city_q1_gmv WHERE quarter = '22Q1'
-),
-
-gmv_21q1 AS (
-    SELECT * FROM city_q1_gmv WHERE quarter = '21Q1'
-)
+q22 AS (SELECT * FROM city_q1 WHERE quarter = '22Q1'),
+q21 AS (SELECT * FROM city_q1 WHERE quarter = '21Q1')
 
 SELECT
-    a.city,
-    a.city_gmv AS gmv_22q1,
-    b.city_gmv AS gmv_21q1,
+    q22.city,
+    q22.city_gmv AS gmv_22q1,
+    q21.city_gmv AS gmv_21q1,
+    (q22.city_gmv - COALESCE(q21.city_gmv, 0)) AS delta_gmv,
     CASE 
-        WHEN b.city_gmv > 0 
-        THEN a.city_gmv / b.city_gmv 
-        ELSE 0 
-    END AS yoy_growth_rate,
-    a.store_count AS store_count_22q1
-FROM gmv_22q1 a
-LEFT JOIN gmv_21q1 b
-    ON a.city = b.city
-ORDER BY yoy_growth_rate DESC;
+        WHEN COALESCE(q21.city_gmv, 0) > 0 THEN q22.city_gmv / q21.city_gmv - 1
+        ELSE NULL
+    END AS yoy_gmv_growth,
+    q22.store_count AS store_count_22q1,
+    q21.store_count AS store_count_21q1,
+    (q22.store_count - COALESCE(q21.store_count, 0)) AS store_delta,
+    CASE
+        WHEN COALESCE(q21.store_count, 0) > 0 THEN q22.store_count * 1.0 / q21.store_count - 1
+        ELSE NULL
+    END AS yoy_store_growth
+FROM q22
+LEFT JOIN q21
+  ON q22.city = q21.city
+WHERE COALESCE(q21.city_gmv, 0) >= 10000
+ORDER BY yoy_gmv_growth DESC;
